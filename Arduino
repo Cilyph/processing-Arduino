@@ -1,0 +1,38 @@
+/*Arduino里的代码：*/
+
+int sensePin=A5;    //选择模拟5输入端口
+int sensorValue=0;
+
+void setup() {
+pinMode(sensePin,INPUT);
+pinMode(5,OUTPUT);        //将端口5设置为输出端口
+pinMode(6,OUTPUT);        //将端口6设置为输出端口
+pinMode(7,OUTPUT);      //将端口7设置为输出端口
+digitalWrite(5,LOW);          //将端口5初始化为低电平
+digitalWrite(6,LOW);       //将端口6初始化为低电平
+digitalWrite(7,LOW);       //将端口7初始化为低电平
+Serial.begin(9600);        //将波特率设置为9600
+
+}
+
+void loop() {
+sensorValue=analogRead(A5);            //将读取模拟端口5的值赋给sensorValue
+if(sensorValue<=200){          //如果获取到声音大小的值<=200
+digitalWrite(5,HIGH);         //端口5输出高电平
+digitalWrite(6,LOW);          //端口6输出低电平
+digitalWrite(7,LOW);          //端口7输出低电平
+}
+else if(sensorValue>200&&sensorValue<250){
+digitalWrite(5,LOW);
+digitalWrite(6,HIGH);
+digitalWrite(7,LOW);
+}
+else {
+digitalWrite(5,LOW);
+digitalWrite(6,LOW);
+digitalWrite(7,HIGH);
+}
+Serial.write(sensorValue);
+delay(10);
+
+}
