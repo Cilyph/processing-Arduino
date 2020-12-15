@@ -1,4 +1,5 @@
-/*Arduino里的代码：*/
+/*导论大作业
+     Arduino里的代码：*/
 
 int sensePin=A5;    //选择模拟5输入端口
 int sensorValue=0;
