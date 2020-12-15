@@ -1,0 +1,195 @@
+/*# processing-Arduino
+导论大作业
+processing里的代码：*/
+
+import processing.serial.*;//引入一个Serial库
+Serial myport;//实例化一个Serial对象
+import java.util.Iterator;
+snowsystem snow;
+PImage img;//图片读取和创建
+PImage img2;
+PImage img3;
+float vol;
+float speed_=vol/20;
+
+void setup(){//建画板
+size(1280,686);
+snow =new snowsystem(0.2);
+img=loadImage(“the cat.jpg”);//引入的图片
+img2=loadImage(“dongman.jpg”);//引入的图片
+img3=img2;
+myport=new Serial(this,”com4″,9600);
+}
+void draw(){////重复执行，绘制雪花及其下落过程（动态）
+if(myport.available()>0){
+vol=myport.read();//读取串口的值
+println(vol);//打印串口的值
+}
+background(40);
+image(img3,0,0,width,height);//显示背景图片
+snow.run(); //执行雪花函数，以产生雪花效果
+if(vol>0){
+int r=int(random(255));
+int g=int(random(255));
+int b=int(random(255));
+stroke(r,g,b);
+}
+translate(width /9, height / 5);//应用一个平移变换。
+float bins=1024;
+for(int i=0;i<bins -1;i++) {//利用声音信号画线，使产生动态
+strokeWeight(2);
+float r1 = 100+ 150 *vol/200;
+float r2 = 100 +150 * vol/200;
+float R1 = 100 + 150 *vol/200;
+float R2 = 100 + 150 * vol/200;
+float rad1 = 2 * PI * (i / bins);
+float rad2 = 2 * PI * ((i + 1) / bins);
+float Rad1 = 2 * PI * (i / bins);
+float Rad2 = 2 * PI * ((i + 1) / bins);
+line(r1 * cos(rad1)+500, r1 * sin(rad1)+500, r2 * cos(rad2)+500, r2 * sin(rad2)+500);
+line(R1 * cos(Rad1)+500, R1 * sin(Rad1)+500, R2 * cos(Rad2)+500, R2 * sin(Rad2)+500);
+}
+noFill();
+arc(500, 500, vol/5, vol/5, -2*PIE, 2*PIE);//画圆
+arc(500, 500,vol/5, vol/5, -2*PIE, 2*PIE);//画圆
+
+translate(-width / 9, -height / 5);//平移变换
+
+stroke(225);
+// snow.run();
+}
+class Branch  ////雪花6个主分叉的其中一个的绘制——分支类
+{
+float radius,ratio,rotation;
+Branch(float radius_,float ratio_,float rot){ //构造函数并赋值
+radius=radius_;
+ratio=ratio_;
+rotation=rot;
+}
+void generate()//类方法 ——生成完整的一支雪花分枝
+{
+pushMatrix();
+rotate(radians(rotation)); //旋转
+float len=getStartLength(radius,ratio);
+branch(len);//递归函数
+popMatrix();
+}
+void branch(float len)//主递归函数
+{
+strokeWeight(len*0.5); //线粗细
+strokeCap(ROUND);  //线端点平滑
+line(0,0,0,-len);           //画线
+translate(0,-len);  //移动
+
+if(len>2) //递归终止条件
+{
+pushMatrix();
+branch(len*ratio);
+popMatrix();
+
+pushMatrix();
+rotate(radians(-60)); //左
+branch(getStartLength(len,ratio));
+popMatrix();
+
+pushMatrix();
+rotate(radians(60)); //右
+branch(getStartLength(len,ratio));
+popMatrix();
+}
+}
+
+float getStartLength(float length,float  ratio)
+{
+float len=(1-ratio)*length;
+return len;
+}
+}
+
+class snowflake //雪花类
+{
+PVector position ,velocity;
+float rotation ,aVelocity,radius,ratio;
+Branch[] branches=new Branch[6];
+
+snowflake(PVector pos,PVector vel,float rot,float aVel,float r,float rat)
+{
+position =pos;
+velocity=vel;
+rotation=rot;
+aVelocity=aVel;
+radius=r;
+ratio=rat;
+
+for(int i=0;i<6;i++){ branches[i]=new Branch(radius,ratio,i*60);}
+}
+
+void update()
+{
+position.add(velocity);//速度
+rotation+=aVelocity;  //角速度
+}
+void show()
+{
+pushMatrix();
+translate(position.x,position.y);
+rotate(radians(rotation));
+for(Branch b:branches)
+{b.generate();}
+popMatrix();
+}
+}
+
+class snowsystem   //雪花下落类
+{
+float speed ;
+ArrayList<snowflake> snowflakes;
+
+snowsystem (float speed_){
+speed=speed_;
+snowflakes=new ArrayList<snowflake>();
+}
+
+void  generate() //生成新雪花（多个,根据音量大小）
+{
+PVector position =new PVector(random(0,width),0);
+//PVector velocity =new PVector(0,random(5,10));
+PVector velocity =new PVector(0,vol/5);
+float rotation =random(0,360);
+//float rotation =vol;
+float aVel=random(-2,5);
+float radius =random(10,vol/3);
+//float radius =vol/5;
+if(radius>10)radius=vol/3;
+float ratio=0.618;
+
+snowflake s=new snowflake(position,velocity,rotation,aVel,radius,ratio);
+snowflakes.add(s);
+}
+
+void  emit() //控制雪的大小的函数
+{
+if(speed >=1)
+{
+for(int i=0;i<speed;i++){ generate();}
+}
+else if(speed>0){if(random(1)<speed){generate();}}
+}
+
+void update() //清除落到画布外的雪花
+{
+Iterator<snowflake> ite=snowflakes.iterator();
+while(ite.hasNext()){snowflake s=ite.next();s.update();s.show(); //在画布中显示下雪的情状
+if(s.position.y>(height+s.radius)){ite.remove();}//雪花落到画布外就移除
+}
+}
+void run () //执行雪花下落
+{ emit();update();}
+}
+void mouseClicked(){//建立一个鼠标点击事件
+if(mouseX<640)
+img3=img;//当鼠标在横坐标小于640的区域点击时，显示图片img
+else
+img3=img2;//否则，即在大于或等于640的区域点击时，显示图片img2
+}
+
